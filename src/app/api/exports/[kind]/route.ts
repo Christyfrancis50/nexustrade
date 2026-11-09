@@ -4,6 +4,7 @@ import { getSessionUser } from '@/lib/auth/session'
 import { journalCsv, vatCsv, xeroJournalCsv } from '@/features/reports/build'
 import { invoiceRows, journalLines } from '@/features/reports/data'
 import { parsePeriod } from '@/features/reports/period'
+import { getLimiter } from '@/lib/rate-limit'
 
 const KINDS = {
   journal: { file: 'nexustrade-journal', build: async (from: Date, to: Date) => journalCsv(await journalLines(db(), from, to)) },
@@ -16,6 +17,10 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ kind: strin
   const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: 'Not signed in' }, { status: 401 })
   if (user.role !== 'finance') return NextResponse.json({ error: 'Finance only' }, { status: 403 })
+
+  const limited = await (await getLimiter('export')).limit(user.id)
+  if (!limited.success)
+    return NextResponse.json({ error: 'Too many exports, try again shortly' }, { status: 429, headers: { 'Retry-After': String(limited.retryAfterSeconds) } })
 
   const { kind } = await ctx.params
   const spec = KINDS[kind as keyof typeof KINDS]

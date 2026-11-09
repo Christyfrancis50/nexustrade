@@ -35,7 +35,7 @@ export default function Home() {
         <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {MODULES.map((m) => (
             <li key={m.code} className="rounded-xl border border-foreground/10 p-5">
-              <span className="font-mono text-xs text-foreground/50">Module {m.code}</span>
+              <span className="font-mono text-xs text-foreground/65">Module {m.code}</span>
               <h3 className="mt-1 font-medium">{m.title}</h3>
               <p className="mt-2 text-sm text-foreground/70">{m.body}</p>
             </li>
@@ -43,7 +43,7 @@ export default function Home() {
         </ul>
       </section>
 
-      <footer className="mt-auto text-sm text-foreground/50">Portfolio project in progress. See docs/PROGRESS.md.</footer>
+      <footer className="mt-auto text-sm text-foreground/65">Portfolio project · Next.js 16, Supabase, Drizzle, pgvector, Stripe (test mode)</footer>
     </main>
   );
 }

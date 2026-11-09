@@ -90,9 +90,9 @@ async function Reports({ searchParams }: { searchParams: SP }) {
             ['Exempt supplies', aed(vat.exempt.valueAed), `${vat.exempt.count} invoices`],
           ].map(([label, value, hint]) => (
             <div key={label} className="rounded-lg bg-foreground/[0.03] p-3">
-              <dt className="text-xs uppercase tracking-wider text-foreground/50">{label}</dt>
+              <dt className="text-xs uppercase tracking-wider text-foreground/65">{label}</dt>
               <dd className="mt-1 font-semibold tabular-nums">{value}</dd>
-              <dd className="text-xs text-foreground/50">{hint}</dd>
+              <dd className="text-xs text-foreground/65">{hint}</dd>
             </div>
           ))}
         </dl>
@@ -111,7 +111,7 @@ async function Reports({ searchParams }: { searchParams: SP }) {
           <a href={`/api/exports/journal?${qs}`} className="rounded-md border border-foreground/15 px-3 py-1.5 text-sm hover:bg-foreground/5">Journal for Zoho Books (CSV)</a>
           <a href={`/api/exports/xero?${qs}`} className="rounded-md border border-foreground/15 px-3 py-1.5 text-sm hover:bg-foreground/5">Xero manual journal (CSV)</a>
         </div>
-        <p className="text-xs text-foreground/50">
+        <p className="text-xs text-foreground/65">
           Exports are in AED, one balanced journal per ledger transaction. Zoho Books maps columns on import. For Xero, compare the
           headers with the template on your import screen and map receivable, payable and bank accounts to clearing accounts, because
           Xero doesn&apos;t allow those in manual journals. Duty figures are indicative.

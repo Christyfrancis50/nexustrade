@@ -10,7 +10,7 @@
 | 6. Module B: HS classifier | ✅ Built (screen needs Supabase to try live) |
 | 7. Module D: escrow & Stripe | ✅ Built (screens need Supabase; Stripe optional) |
 | 8. Module E: dashboards & exports | ✅ Built (screens need Supabase to try live) |
-| 9. Hardening | ⏭ Next |
+| 9. Hardening | ✅ Done |
 
 ## Phase 1: Scaffold ✅
 Started by the Antigravity agent (Next.js 16.4 app, Tailwind v4, Zod, Drizzle packages); finished in Claude Code after Antigravity's Claude credits ran out.
@@ -167,4 +167,31 @@ Started by the Antigravity agent (Next.js 16.4 app, Tailwind v4, Zod, Drizzle pa
 
 **Not yet verified:** the charts, reports page and packing slip haven't rendered live (needs Supabase).
 
-## Next: Phase 9 (Hardening)
+## Phase 9: Hardening ✅
+**Delivered**
+- **Content-Security-Policy** on every response: no third-party scripts, no `eval` in production, `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'none'`, forms only to us and Stripe. Verified by Playwright with zero CSP violations and the app hydrating.
+- **Rate limiting** (`lib/rate-limit.ts`), sliding window:
+  - sign-in: 5 per IP+email and 20 per IP per 10 minutes
+  - uploads/AI: 20 per user per 10 minutes
+  - exports: 30 per user per 10 minutes, with HTTP 429 and `Retry-After`
+  - Stripe checkout: 10 per user per 10 minutes
+  Upstash Redis when configured, otherwise in-memory.
+- **Error pages**: branded 404, error boundary that shows only a digest, `robots.txt` blocking workspaces and APIs, `/api/health`.
+- **E2E tests** grew from 5 to 14: CSP, hydration, API authorisation when signed out (exports, files, webhook), 404, health.
+- **Accessibility**: Lighthouse found low-contrast secondary text (3.4:1). Faint text was raised app-wide to about 5.3:1. **Lighthouse 100/100/100/100** on `/` and `/login`, enforced in CI (`lighthouserc.json`; reports kept as CI artifacts, not published).
+- **CI**: Lighthouse job, Docker build + container health check job, CodeQL (security-extended, weekly).
+- **Docker**: multi-stage, `output: 'standalone'` (enabled only in Docker builds because Windows symlinks need extra privileges), non-root user, health check.
+- **Security review**: `docs/SECURITY_REVIEW.md`, 18 checks, no open high or medium findings; Stripe amount bound added.
+- **README**: architecture diagram (Mermaid), features, quality, setup, screenshots (`scripts/screenshots.mjs`).
+
+**Decisions**
+- **CSP allows inline scripts** (finding F1). Next.js streams page data in inline scripts. Nonces would force every page to render per request (losing Cache Components' static shells), and the experimental SRI option was tried and isn't applied in Turbopack builds. Mitigated by having no raw-HTML rendering anywhere and React's escaping.
+- Docker isn't installed on the dev machine, so the image is verified in CI rather than locally.
+
+**Checks:** lint ✅ · typecheck ✅ · tests 146/146 ✅ · e2e 13 passed, 1 skipped (needs Supabase keys) · drizzle-kit check ✅ · build ✅ · Lighthouse 100×4 ✅ · npm audit 0 vulnerabilities
+
+## Project complete
+All nine phases are built. What remains needs your accounts, not code:
+1. Supabase project and keys (then `db:migrate`, `auth:demo-users`, `db:seed`), to see the workspaces live.
+2. Optional: Google AI key (real extraction and semantic HS search), Stripe test keys, Upstash Redis.
+3. Push to GitHub (CI, CodeQL and Dependabot switch on) and import into Vercel.

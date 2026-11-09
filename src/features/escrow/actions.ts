@@ -12,6 +12,7 @@ import { env } from '@/env'
 import { requireRole } from '@/lib/auth/session'
 import { toMinor, type Currency } from '@/lib/money'
 import { getStripe, rateFor } from '@/features/payments/stripe'
+import { getLimiter, tooMany } from '@/lib/rate-limit'
 import { EscrowError, fundEscrow, markDelivered, releaseMilestone } from './service'
 
 export type EscrowActionState = { ok?: boolean; message?: string }
@@ -38,7 +39,9 @@ async function safely(fn: () => Promise<string>): Promise<EscrowActionState> {
 
 /** Finance starts a Stripe TEST checkout for the full freight. Stripe's webhook funds escrow. */
 export async function startCheckoutAction(_prev: EscrowActionState, formData: FormData): Promise<EscrowActionState> {
-  await requireRole('finance')
+  const user = await requireRole('finance')
+  const limited = await (await getLimiter('checkout')).limit(user.id)
+  if (!limited.success) return { ok: false, message: tooMany(limited) }
   const id = ids(formData, 'shipmentId')
   if (!id.success) return { ok: false, message: 'Unknown shipment' }
   const stripe = getStripe()
@@ -46,6 +49,9 @@ export async function startCheckoutAction(_prev: EscrowActionState, formData: Fo
 
   const [s] = await db().select().from(schema.shipments).where(eq(schema.shipments.id, id.data))
   if (!s || s.status !== 'DRAFT') return { ok: false, message: 'Only draft shipments can be booked' }
+
+  const minor = toMinor(s.freightAmount)
+  if (minor <= 0n || minor > 99_999_999n) return { ok: false, message: 'Amount is outside what Stripe Checkout accepts' } // Stripe max: 8 digits
 
   const h = await headers()
   const origin = h.get('origin') ?? `http://${h.get('host') ?? 'localhost:3000'}`
@@ -59,7 +65,7 @@ export async function startCheckoutAction(_prev: EscrowActionState, formData: Fo
             quantity: 1,
             price_data: {
               currency: s.freightCurrency.toLowerCase(),
-              unit_amount: Number(toMinor(s.freightAmount)),
+              unit_amount: Number(minor), // integer minor units, bounded above: exact as a JS number
               product_data: { name: `Freight escrow · ${s.trackingNumber}`, description: `${s.originPort} → ${s.destinationPort} · ${s.carrierName}` },
             },
           },

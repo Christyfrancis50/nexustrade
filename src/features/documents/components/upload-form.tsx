@@ -66,7 +66,7 @@ export function UploadForm({ shipmentId }: { shipmentId: string }) {
           onChange={(e) => pick(e.target.files)}
         />
         <span className="font-medium">{fileName ?? 'Drop a PDF, PNG or JPEG here, or click to choose'}</span>
-        <span className="text-xs text-foreground/50">Up to 10 MB. The AI reads it and every total is re-checked.</span>
+        <span className="text-xs text-foreground/65">Up to 10 MB. The AI reads it and every total is re-checked.</span>
       </label>
 
       <button

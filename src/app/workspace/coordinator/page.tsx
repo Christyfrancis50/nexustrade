@@ -44,7 +44,7 @@ async function Shipments() {
                     <Link href={`/workspace/coordinator/shipments/${s.id}`} className="font-mono font-medium underline-offset-4 hover:underline">
                       {s.trackingNumber}
                     </Link>
-                    <div className="text-xs text-foreground/50">{s.mode}</div>
+                    <div className="text-xs text-foreground/65">{s.mode}</div>
                   </td>
                   <td className="px-4 py-3 font-mono text-xs">
                     {s.originPort} → {s.destinationPort}

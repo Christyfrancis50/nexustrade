@@ -12,6 +12,7 @@ import { describeFlag, type Flag } from './reconcile'
 import { supabaseStore } from './store'
 import { suggestForPendingLines } from '@/features/hs/classify'
 import { getEmbedder } from '@/features/hs/config'
+import { getLimiter, tooMany } from '@/lib/rate-limit'
 
 const uploadSchema = z.object({
   shipmentId: z.uuid(),
@@ -31,6 +32,10 @@ export async function uploadDocument(_prev: UploadState, formData: FormData): Pr
 
   const admin = supabaseAdmin()
   if (!admin) return { ok: false, message: 'File storage is not configured. Add SUPABASE_SERVICE_ROLE_KEY to .env.' }
+
+  // Each upload can call a paid/limited AI model: cap per user.
+  const limited = await (await getLimiter('upload')).limit(user.id)
+  if (!limited.success) return { ok: false, message: tooMany(limited) }
 
   try {
     const checked = checkUpload(new Uint8Array(await file.arrayBuffer()), file.name)

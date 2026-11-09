@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: 'Finance · NexusTrade' }
 
 const aed = (minor: bigint) => formatMoney(minor, 'AED')
 const MILESTONE_TONE: Record<string, string> = {
-  PENDING: 'text-foreground/50',
+  PENDING: 'text-foreground/65',
   LOCKED: 'text-sky-700 dark:text-sky-300',
   RELEASED: 'text-emerald-700 dark:text-emerald-300',
 }
@@ -64,9 +64,9 @@ async function Escrow() {
       <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((s) => (
           <div key={s.label} className="rounded-xl border border-foreground/10 p-4">
-            <dt className="text-xs uppercase tracking-wider text-foreground/50">{s.label}</dt>
+            <dt className="text-xs uppercase tracking-wider text-foreground/65">{s.label}</dt>
             <dd className="mt-1 text-xl font-semibold tabular-nums">{s.value}</dd>
-            <dd className="text-xs text-foreground/50">{s.hint}</dd>
+            <dd className="text-xs text-foreground/65">{s.hint}</dd>
           </div>
         ))}
       </dl>
@@ -85,7 +85,7 @@ async function Escrow() {
                   </span>
                 </div>
                 {s.canFund && <FundButtons shipmentId={s.id} stripeEnabled={stripeEnabled} />}
-                {!s.canFund && !s.funded && <span className="text-xs text-foreground/50">Not funded</span>}
+                {!s.canFund && !s.funded && <span className="text-xs text-foreground/65">Not funded</span>}
               </div>
               {s.milestones.length > 0 && (
                 <div className="grid gap-2 sm:grid-cols-3">

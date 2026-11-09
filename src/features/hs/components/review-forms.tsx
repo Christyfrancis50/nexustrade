@@ -39,7 +39,7 @@ export function LineDecision({ line }: { line: QueueLine }) {
     <div className="flex flex-col gap-3 border-t border-foreground/10 py-4 first:border-t-0">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <p className="font-medium">
-          <span className="mr-2 tabular-nums text-foreground/40">{line.lineNo}</span>
+          <span className="mr-2 tabular-nums text-foreground/65">{line.lineNo}</span>
           {line.description}
         </p>
         <span className="text-sm tabular-nums text-foreground/60">

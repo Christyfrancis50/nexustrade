@@ -43,10 +43,10 @@ async function ShipmentDetail({ params }: { params: Promise<{ id: string }> }) {
           )}
         </div>
         <dl className="grid gap-x-8 gap-y-1 text-sm sm:grid-cols-2 lg:grid-cols-4">
-          <div><dt className="text-foreground/50">Route</dt><dd className="font-mono">{s.originPort} → {s.destinationPort} · {s.mode}</dd></div>
-          <div><dt className="text-foreground/50">Shipper</dt><dd>{s.shipperName}</dd></div>
-          <div><dt className="text-foreground/50">Consignee</dt><dd>{s.consigneeName}{s.freeZone ? ' (free zone)' : ''}</dd></div>
-          <div><dt className="text-foreground/50">Freight</dt><dd className="tabular-nums">{money(s.freightAmount, s.freightCurrency)}</dd></div>
+          <div><dt className="text-foreground/65">Route</dt><dd className="font-mono">{s.originPort} → {s.destinationPort} · {s.mode}</dd></div>
+          <div><dt className="text-foreground/65">Shipper</dt><dd>{s.shipperName}</dd></div>
+          <div><dt className="text-foreground/65">Consignee</dt><dd>{s.consigneeName}{s.freeZone ? ' (free zone)' : ''}</dd></div>
+          <div><dt className="text-foreground/65">Freight</dt><dd className="tabular-nums">{money(s.freightAmount, s.freightCurrency)}</dd></div>
         </dl>
       </div>
 
@@ -63,7 +63,7 @@ async function ShipmentDetail({ params }: { params: Promise<{ id: string }> }) {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex flex-col">
                     <span className="font-medium">{humanize(d.type)} {d.documentNumber && <span className="font-mono text-sm text-foreground/60">· {d.documentNumber}</span>}</span>
-                    <span className="text-xs text-foreground/50">
+                    <span className="text-xs text-foreground/65">
                       {d.originalFilename} · {(d.sizeBytes / 1024).toFixed(0)} KB{d.extractionProvider ? ` · read by ${d.extractionProvider}` : ''}
                     </span>
                   </div>
@@ -127,11 +127,11 @@ async function ShipmentDetail({ params }: { params: Promise<{ id: string }> }) {
               <tbody>
                 {lineItems.map((l) => (
                   <tr key={l.id} className="border-t border-foreground/10">
-                    <td className="px-4 py-2 tabular-nums text-foreground/50">{l.lineNo}</td>
+                    <td className="px-4 py-2 tabular-nums text-foreground/65">{l.lineNo}</td>
                     <td className="px-4 py-2">{l.description}</td>
                     <td className="px-4 py-2 text-right tabular-nums">{Number(l.quantity).toLocaleString('en-US')} {l.unit}</td>
                     <td className="px-4 py-2 text-right tabular-nums">{money(l.unitPrice, l.currency)}</td>
-                    <td className="px-4 py-2 font-mono text-xs">{l.hsCode ?? <span className="text-foreground/40">{humanize(l.hsStatus)}</span>}</td>
+                    <td className="px-4 py-2 font-mono text-xs">{l.hsCode ?? <span className="text-foreground/65">{humanize(l.hsStatus)}</span>}</td>
                   </tr>
                 ))}
               </tbody>
