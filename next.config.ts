@@ -13,6 +13,10 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  experimental: {
+    // Document uploads go through a Server Action: 10 MB files + multipart overhead.
+    serverActions: { bodySizeLimit: "11mb" },
+  },
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {

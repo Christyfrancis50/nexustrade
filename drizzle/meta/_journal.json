@@ -43,6 +43,13 @@
       "when": 1794226852899,
       "tag": "0005_ledger_single_reversal",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794227427062,
+      "tag": "0006_document_extraction_meta",
+      "breakpoints": true
     }
   ]
 }

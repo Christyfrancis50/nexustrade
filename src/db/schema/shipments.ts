@@ -83,6 +83,9 @@ export const documents = pgTable(
     sha256: text().notNull(),
     extractionStatus: extractionStatus().default('PENDING').notNull(),
     extracted: jsonb(), // validated AI output (Module A)
+    extractionProvider: text(), // e.g. mock, google:gemini-3.8-flash
+    extractionError: text(),
+    flags: jsonb().$type<unknown[]>().default([]).notNull(), // reconciliation flags
     statedTotal: money(), // total printed on the document
     computedTotal: money(), // total we recomputed from line items
     hasDiscrepancy: boolean().default(false).notNull(),
