@@ -7,8 +7,8 @@
 | 3. Schema & seed | ✅ Done (load into Supabase with db:migrate + db:seed) |
 | 4. Ledger, tax & FX engine | ✅ Done |
 | 5. Module A: document AI | ✅ Built (screens need Supabase to try live) |
-| 6. Module B: HS classifier | ⏭ Next |
-| 7. Module D: escrow & Stripe | ⬜ |
+| 6. Module B: HS classifier | ✅ Built (screen needs Supabase to try live) |
+| 7. Module D: escrow & Stripe | ⏭ Next |
 | 8. Module E: dashboards & exports | ⬜ |
 | 9. Hardening | ⬜ |
 
@@ -109,4 +109,24 @@ Started by the Antigravity agent (Next.js 16.4 app, Tailwind v4, Zod, Drizzle pa
 
 **Not yet verified:** the screens and a real Gemini/Claude extraction haven't run live, because that needs Supabase keys (and an AI key for real extraction). The logic behind them is covered by the tests above.
 
-## Next: Phase 6 (Module B: HS code classifier)
+## Phase 6: Module B, HS code classifier ✅
+**Delivered**
+- **Full official HS list**: 5,612 six-digit subheadings with their heading text, built by `npm run hs:build` from the public-domain [datasets/harmonized-system](https://github.com/datasets/harmonized-system) CSV (ODC-PDDL). Chapter 99 (a statistics-only bucket) is excluded. The build script verifies that all 51 hand-picked codes from Phase 3 exist.
+- **Indicative duty and control rules** (`hs-rules.ts`): 5% by default; 0% for staples, pharma and IT; 50% for alcohol; 100% for tobacco; permit flags for arms, explosives, tobacco, alcohol, pharma, pesticides, medical devices and transmitters. Clearly labelled as not customs advice.
+- **Two search modes, same interface** (`classify.ts`):
+  - **keyword** (default, no key): Postgres full-text search on a generated, weighted `tsvector` with a GIN index (migration `0007`). Ranked by the share of the line's keywords matched, then term density.
+  - **semantic**: pgvector cosine similarity over `gemini-embedding-001` vectors (384 dims, free tier). Turn it on with `EMBEDDING_PROVIDER=google` after `npm run hs:embed`.
+- **Broker decisions** (`review.ts`):
+  - approve, or override (a note is required); every decision goes to `classification_decisions` and the audit log
+  - restricted goods automatically put the shipment on customs hold
+  - `clearanceCheck` lists the blockers: undecided lines, restricted lines, unresolved document discrepancies
+  - `clearShipment` / `holdShipment` with audit trail
+- **Broker screen**: queue of shipments in transit or on hold; each line shows top-3 suggestions with confidence bars, duty % and estimated duty, permit warnings, an override field and a note; per-shipment blockers with Clear, Suggest codes and Hold. Uploading an invoice now auto-suggests codes for its new lines.
+
+**Bugs found by tests:** keyword ranking put "cigarettes containing tobacco" under smoking tobacco (fixed by ranking on keyword coverage first); the source data includes a fake-looking `999999` code (excluded).
+
+**Checks:** lint ✅ · typecheck ✅ · tests 112/112 ✅ (classifier runs on all 5,612 codes in real Postgres; the pgvector path is tested with a deterministic local embedder) · drizzle-kit check ✅ · build ✅ · e2e 4 passed, 1 skipped · npm audit 0 vulnerabilities
+
+**Not yet verified:** the broker screen and real Gemini embeddings haven't run live (needs Supabase, plus a Google AI key for semantic mode).
+
+## Next: Phase 7 (Module D: escrow & Stripe test payments)

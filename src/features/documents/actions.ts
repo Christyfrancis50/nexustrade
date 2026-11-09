@@ -10,6 +10,8 @@ import { ingestDocument, IngestError, markReviewed } from './ingest'
 import { getExtractionProvider } from './provider-config'
 import { describeFlag, type Flag } from './reconcile'
 import { supabaseStore } from './store'
+import { suggestForPendingLines } from '@/features/hs/classify'
+import { getEmbedder } from '@/features/hs/config'
 
 const uploadSchema = z.object({
   shipmentId: z.uuid(),
@@ -37,7 +39,16 @@ export async function uploadDocument(_prev: UploadState, formData: FormData): Pr
       { store: supabaseStore(admin), provider: await getExtractionProvider() },
       { shipmentId: parsed.data.shipmentId, documentType: parsed.data.documentType, file: checked, uploadedBy: user.id },
     )
+    // New invoice lines get an HS suggestion straight away for the broker's queue.
+    if (result.status === 'EXTRACTED' && result.lineItemsAdded > 0) {
+      try {
+        await suggestForPendingLines(db(), { shipmentId: parsed.data.shipmentId, embedder: await getEmbedder() })
+      } catch (e) {
+        console.error('HS auto-suggest failed (broker can retry)', e)
+      }
+    }
     revalidatePath(`/workspace/coordinator/shipments/${parsed.data.shipmentId}`)
+    revalidatePath('/workspace/broker')
 
     switch (result.status) {
       case 'DUPLICATE':

@@ -120,6 +120,7 @@ export const lineItems = pgTable(
     volumeCbm: numeric({ precision: 12, scale: 3 }),
     hsCode: text(),
     hsStatus: hsStatus().default('UNCLASSIFIED').notNull(),
+    hsConfidence: numeric({ precision: 5, scale: 4 }), // of the current suggestion, 0..1
     restricted: boolean().default(false).notNull(),
     createdAt: createdAt(),
   },

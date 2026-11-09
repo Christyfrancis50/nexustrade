@@ -9,11 +9,12 @@
  */
 import { createHash } from 'node:crypto'
 import { pathToFileURL } from 'node:url'
-import { eq, like } from 'drizzle-orm'
+import { eq, like, sql } from 'drizzle-orm'
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core'
 import * as schema from './schema'
 import { ACCOUNTS, DEMO_SHIPMENTS, DEMO_TRACKING_PREFIX, ESCROW_SPLIT, FX_RATES, type DemoShipment } from './data/demo'
 import { HS_CODES } from './data/hs-codes'
+import HS_DATASET from './data/hs-codes.json'
 import { applyBasisPoints, fromMinor, toMinor } from '../lib/money'
 import { computeInvoice, lineTotal } from '../lib/tax/invoice'
 import { carrierPaid, escrowFunded, invoiceIssued, milestoneReleased, type DraftEntry } from '../lib/ledger/entries'
@@ -32,12 +33,24 @@ export async function seed(db: Db) {
     for (const a of ACCOUNTS)
       await tx.insert(schema.accounts).values(a).onConflictDoUpdate({ target: schema.accounts.code, set: { name: a.name, type: a.type } })
 
-    for (const h of HS_CODES) {
-      const row = { code: h.code, description: h.description, chapter: Number(h.code.slice(0, 2)), dutyRateBp: h.dutyRateBp, restricted: h.restricted ?? false }
-      await tx.insert(schema.hsCodes).values(row).onConflictDoUpdate({
-        target: schema.hsCodes.code,
-        set: { description: row.description, chapter: row.chapter, dutyRateBp: row.dutyRateBp, restricted: row.restricted },
-      })
+    // All 5,613 official HS subheadings (public-domain dataset), in batches.
+    // Embeddings are left untouched here; `npm run hs:embed` fills them.
+    for (let i = 0; i < HS_DATASET.length; i += 500) {
+      const batch = HS_DATASET.slice(i, i + 500).map((h) => ({ ...h, chapter: Number(h.code.slice(0, 2)) }))
+      await tx
+        .insert(schema.hsCodes)
+        .values(batch)
+        .onConflictDoUpdate({
+          target: schema.hsCodes.code,
+          set: {
+            description: sql`excluded.description`,
+            heading: sql`excluded.heading`,
+            section: sql`excluded.section`,
+            chapter: sql`excluded.chapter`,
+            dutyRateBp: sql`excluded.duty_rate_bp`,
+            restricted: sql`excluded.restricted`,
+          },
+        })
     }
 
     for (const f of FX_RATES)
@@ -54,7 +67,7 @@ export async function seed(db: Db) {
     // ---- demo shipments: created once. Their ledger history is append-only,
     // so a re-run keeps them rather than deleting and recreating them. ----
     const existing = await tx.$count(schema.shipments, like(schema.shipments.trackingNumber, `${DEMO_TRACKING_PREFIX}%`))
-    const summary = { accounts: ACCOUNTS.length, hsCodes: HS_CODES.length, fxRates: FX_RATES.length, demoUsersLinked: demoProfiles.length }
+    const summary = { accounts: ACCOUNTS.length, hsCodes: HS_DATASET.length, fxRates: FX_RATES.length, demoUsersLinked: demoProfiles.length }
     if (existing > 0) return { ...summary, shipments: existing, ledgerTransactions: await tx.$count(schema.ledgerTransactions), skipped: true }
 
     const now = Date.now()

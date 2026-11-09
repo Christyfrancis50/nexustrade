@@ -1,11 +1,13 @@
-import { sql } from 'drizzle-orm'
-import { boolean, check, index, integer, numeric, pgEnum, pgPolicy, pgTable, text, uuid, vector } from 'drizzle-orm/pg-core'
+import { sql, type SQL } from 'drizzle-orm'
+import { boolean, check, customType, index, integer, numeric, pgEnum, pgPolicy, pgTable, text, uuid, vector } from 'drizzle-orm/pg-core'
+
+const tsvector = customType<{ data: string }>({ dataType: () => 'tsvector' })
 import { authenticatedRole } from 'drizzle-orm/supabase'
 import { ANY_ROLE, createdAt, roleIn } from './_shared'
 import { lineItems } from './shipments'
 import { profiles } from './profiles'
 
-/** all-MiniLM-L6-v2 via transformers.js: free, runs locally, 384 dimensions. */
+/** Embedding size: gemini-embedding-001 truncated to 384 dims (free tier). */
 export const HS_EMBEDDING_DIMENSIONS = 384
 
 /**
@@ -17,13 +19,20 @@ export const hsCodes = pgTable(
   {
     code: text().primaryKey(), // 6-digit HS subheading
     description: text().notNull(),
+    heading: text().default('').notNull(), // parent 4-digit heading text, for context
+    section: text().default('').notNull(), // HS section (I–XXI)
     chapter: integer().notNull(),
     dutyRateBp: integer().notNull(), // basis points: 500 = 5%
     restricted: boolean().default(false).notNull(),
     embedding: vector({ dimensions: HS_EMBEDDING_DIMENSIONS }),
+    // Full-text search fallback when no embedding model is configured.
+    search: tsvector().generatedAlwaysAs(
+      (): SQL => sql`setweight(to_tsvector('english', ${hsCodes.description}), 'A') || setweight(to_tsvector('english', ${hsCodes.heading}), 'B')`,
+    ),
   },
   (t) => [
     check('hs_codes_format', sql`${t.code} ~ '^[0-9]{6}$'`),
+    index('hs_codes_search_gin').using('gin', t.search),
     check('hs_codes_duty_range', sql`${t.dutyRateBp} between 0 and 50000`),
     index('hs_codes_embedding_hnsw').using('hnsw', t.embedding.op('vector_cosine_ops')),
     pgPolicy('hs_codes_select', { for: 'select', to: authenticatedRole, using: ANY_ROLE }),

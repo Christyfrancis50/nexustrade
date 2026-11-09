@@ -16,7 +16,9 @@
     "db:seed": "tsx --env-file-if-exists=.env src/db/seed.ts",
     "db:studio": "drizzle-kit studio",
     "verify": "npm run lint && npm run typecheck && npm test && npm run build",
-    "auth:demo-users": "tsx --env-file-if-exists=.env scripts/create-demo-users.ts"
+    "auth:demo-users": "tsx --env-file-if-exists=.env scripts/create-demo-users.ts",
+    "hs:embed": "tsx --env-file-if-exists=.env scripts/embed-hs-codes.ts",
+    "hs:build": "tsx scripts/build-hs-dataset.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.99",

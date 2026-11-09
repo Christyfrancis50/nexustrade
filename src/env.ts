@@ -21,6 +21,8 @@ export const envSchema = z.object({
   // AI extraction: `mock` needs no key
   AI_PROVIDER: z.enum(['mock', 'google', 'anthropic']).default('mock'),
   AI_MODEL: optional, // e.g. gemini-3.8-flash or claude-sonnet-5-5
+  // HS search: 'none' = keyword full-text search; 'google' = semantic (run npm run hs:embed first)
+  EMBEDDING_PROVIDER: z.enum(['none', 'google']).default('none'),
   GOOGLE_GENERATIVE_AI_API_KEY: optional,
   ANTHROPIC_API_KEY: optional,
 
