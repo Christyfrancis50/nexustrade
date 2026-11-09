@@ -8,8 +8,8 @@
 | 4. Ledger, tax & FX engine | ✅ Done |
 | 5. Module A: document AI | ✅ Built (screens need Supabase to try live) |
 | 6. Module B: HS classifier | ✅ Built (screen needs Supabase to try live) |
-| 7. Module D: escrow & Stripe | ⏭ Next |
-| 8. Module E: dashboards & exports | ⬜ |
+| 7. Module D: escrow & Stripe | ✅ Built (screens need Supabase; Stripe optional) |
+| 8. Module E: dashboards & exports | ⏭ Next |
 | 9. Hardening | ⬜ |
 
 ## Phase 1: Scaffold ✅
@@ -129,4 +129,22 @@ Started by the Antigravity agent (Next.js 16.4 app, Tailwind v4, Zod, Drizzle pa
 
 **Not yet verified:** the broker screen and real Gemini embeddings haven't run live (needs Supabase, plus a Google AI key for semantic mode).
 
-## Next: Phase 7 (Module D: escrow & Stripe test payments)
+## Phase 7: Module D, escrow & Stripe test payments ✅
+**Delivered**
+- **Release policy** (`escrow/rules.ts`): the importer funds the full freight at booking; 40% can be released after customs clears; the 10% deposit and the final 50% after proof of delivery. Releases are done by a finance controller (four-eyes), never automatically.
+- **Escrow service** (`escrow/service.ts`):
+  - `fundEscrow` checks the amount and currency match the freight exactly, posts through the ledger engine, locks the deposit, books the shipment (DRAFT → IN_TRANSIT) and is idempotent per payment reference
+  - `releaseMilestone` posts Escrow → Carrier Payable plus a simulated payout (Carrier Payable → Cash), records the payout, links the ledger transaction and is safe to retry. It uses the **funding** FX rate, so the escrow account nets to exactly zero in AED
+  - `markDelivered` requires customs clearance and an uploaded proof of delivery
+  - every step writes the audit log
+- **Stripe (test mode only)**:
+  - Checkout Session for the freight, with an idempotency key so double clicks reuse the session
+  - `/api/webhooks/stripe` verifies the signature on the raw body, refuses live-mode events, funds escrow idempotently (Stripe retries are harmless), records amount mismatches without funding and acknowledges them, and returns 500 on infrastructure errors so Stripe retries
+  - without keys, a "Simulate test payment" button uses the same funding path
+- **Screens**: the finance page shows escrow held, VAT and duty payable and amounts owed to carriers (AED), plus each shipment's milestones with Release buttons (a disabled button explains why on hover) and Collect / Simulate payment for drafts. The coordinator gets "Mark delivered" once cleared with a POD uploaded.
+
+**Checks:** lint ✅ · typecheck ✅ · tests 126/126 ✅ (escrow lifecycle against real Postgres; webhook tests use Stripe's own signing helper offline) · drizzle-kit check ✅ · build ✅ · e2e 4 passed, 1 skipped · npm audit 0 vulnerabilities
+
+**Not yet verified:** the screens and a real Stripe test checkout haven't run live. To try Stripe: add `sk_test_…` keys, then run `stripe listen --forward-to localhost:3000/api/webhooks/stripe` and pay with card 4242 4242 4242 4242.
+
+## Next: Phase 8 (Module E: dashboards & exports)

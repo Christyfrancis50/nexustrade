@@ -10,6 +10,7 @@ import { ExtractionStatus, humanize, ShipmentStatus } from '@/features/shipments
 import { UploadForm } from '@/features/documents/components/upload-form'
 import { reviewDocument } from '@/features/documents/actions'
 import { describeFlag, type Flag } from '@/features/documents/reconcile'
+import { DeliveredButton } from '@/features/escrow/components/escrow-buttons'
 
 export const metadata: Metadata = { title: 'Shipment · NexusTrade' }
 
@@ -32,6 +33,14 @@ async function ShipmentDetail({ params }: { params: Promise<{ id: string }> }) {
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="font-mono text-3xl font-semibold tracking-tight">{s.trackingNumber}</h1>
           <ShipmentStatus status={s.status} />
+          {s.status === 'CLEARED' && (
+            <div className="ml-auto">
+              <DeliveredButton
+                shipmentId={s.id}
+                disabledReason={documents.some((d) => d.type === 'PROOF_OF_DELIVERY') ? null : 'Upload the signed proof of delivery first'}
+              />
+            </div>
+          )}
         </div>
         <dl className="grid gap-x-8 gap-y-1 text-sm sm:grid-cols-2 lg:grid-cols-4">
           <div><dt className="text-foreground/50">Route</dt><dd className="font-mono">{s.originPort} → {s.destinationPort} · {s.mode}</dd></div>
