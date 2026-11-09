@@ -8,7 +8,6 @@
  *   npm run db:seed
  */
 import { createHash } from 'node:crypto'
-import { pathToFileURL } from 'node:url'
 import { eq, like, sql } from 'drizzle-orm'
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core'
 import * as schema from './schema'
@@ -255,17 +254,3 @@ export async function seed(db: Db) {
   })
 }
 
-// ---- CLI entry: `npm run db:seed` ----
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const { drizzle } = await import('drizzle-orm/postgres-js')
-  const postgres = (await import('postgres')).default
-  const url = process.env.DATABASE_URL
-  if (!url) throw new Error('DATABASE_URL is not set. Copy .env.example to .env first.')
-  const client = postgres(url, { prepare: false, max: 1 })
-  try {
-    const summary = await seed(drizzle(client, { schema, casing: 'snake_case' }))
-    console.log('Seeded:', summary)
-  } finally {
-    await client.end()
-  }
-}
