@@ -11,6 +11,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core'
 import { authenticatedRole } from 'drizzle-orm/supabase'
@@ -88,6 +89,8 @@ export const ledgerTransactions = pgTable(
   },
   (t) => [
     index('ledger_tx_shipment_idx').on(t.shipmentId),
+    // A transaction can be reversed at most once.
+    uniqueIndex('ledger_tx_reverses_uq').on(t.reversesId).where(sql`${t.reversesId} is not null`),
     pgPolicy('ledger_tx_select', { for: 'select', to: authenticatedRole, using: roleIn('finance') }),
   ],
 ).enableRLS()

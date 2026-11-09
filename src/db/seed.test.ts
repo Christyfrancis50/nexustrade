@@ -61,6 +61,37 @@ describe('seed', () => {
     expect(orphans).toHaveLength(0)
   })
 
+  it('posts ledger history through the engine: funding, invoices, releases and payouts', async () => {
+    // 5 booked shipments funded + 3 invoices + 7 released milestones + 7 payouts
+    expect(await q(`SELECT 1 FROM ledger_transactions`)).toHaveLength(22)
+    expect(await q(`SELECT 1 FROM payouts`)).toHaveLength(7)
+    const unlinked = await q(`SELECT 1 FROM escrow_milestones WHERE status = 'RELEASED' AND ledger_transaction_id IS NULL`)
+    expect(unlinked).toHaveLength(0)
+  })
+
+  it('the books balance and escrow holds exactly the unreleased funded milestones', async () => {
+    const [tb] = await q<{ debit: string; credit: string }>(`
+      SELECT sum(amount_aed) FILTER (WHERE direction = 'DEBIT')::text AS debit,
+             sum(amount_aed) FILTER (WHERE direction = 'CREDIT')::text AS credit FROM ledger_entries`)
+    expect(tb!.debit).toBe(tb!.credit)
+
+    const [escrow] = await q<{ balance_aed: string }>(`SELECT balance_aed::text FROM account_balances WHERE code = '2100'`)
+    const [held] = await q<{ aed: string }>(`
+      SELECT coalesce(sum(round(e.amount * f.rate_to_aed, 2)), 0)::numeric(14,2)::text AS aed
+      FROM escrow_milestones e
+      JOIN shipments s ON s.id = e.shipment_id
+      JOIN fx_rates f ON f.currency = e.currency
+      WHERE e.status <> 'RELEASED' AND s.status <> 'DRAFT'`)
+    // Per-line rounding can differ by a few fils from rounding the sum.
+    expect(Math.abs(Number(escrow!.balance_aed) - Number(held!.aed))).toBeLessThan(0.05)
+    expect(Number(escrow!.balance_aed)).toBeGreaterThan(0)
+  })
+
+  it('a re-run skips existing demo shipments instead of duplicating ledger history', async () => {
+    const again = await seed(t.db)
+    expect(again).toMatchObject({ skipped: true, shipments: 6, ledgerTransactions: 22 })
+  })
+
   it('finance can read invoices through RLS; the seed data is visible to the right roles', async () => {
     const n = await t.asUser(finance, async (db) => (await db.query(`SELECT 1 FROM invoices`)).rows.length)
     expect(n).toBe(3)

@@ -36,6 +36,13 @@
       "when": 1794226232250,
       "tag": "0004_ledger_guards",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794226852899,
+      "tag": "0005_ledger_single_reversal",
+      "breakpoints": true
     }
   ]
 }

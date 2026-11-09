@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "ledger_tx_reverses_uq" ON "ledger_transactions" USING btree ("reverses_id") WHERE "ledger_transactions"."reverses_id" is not null;

@@ -5,8 +5,8 @@
 | 1. Scaffold | ✅ Done |
 | 2. Auth & roles | ✅ Built (needs your Supabase keys to try live) |
 | 3. Schema & seed | ✅ Done (load into Supabase with db:migrate + db:seed) |
-| 4. Ledger, tax & FX engine | ⏭ Next |
-| 5. Module A: document AI | ⬜ |
+| 4. Ledger, tax & FX engine | ✅ Done |
+| 5. Module A: document AI | ⏭ Next |
 | 6. Module B: HS classifier | ⬜ |
 | 7. Module D: escrow & Stripe | ⬜ |
 | 8. Module E: dashboards & exports | ⬜ |
@@ -72,4 +72,23 @@ Started by the Antigravity agent (Next.js 16.4 app, Tailwind v4, Zod, Drizzle pa
 
 **Checks:** lint ✅ · typecheck ✅ · unit + DB tests 44/44 ✅ · drizzle-kit check ✅ · build ✅ · e2e 4 passed, 1 skipped (needs Supabase keys) · npm audit 0 vulnerabilities
 
-## Next: Phase 4 (Ledger, tax & FX engine)
+## Phase 4: Ledger, tax & FX engine ✅
+**Delivered**
+- `src/lib/ledger/entries.ts`, **posting rules** for each business event:
+  - escrow funded: Dr Cash / Cr Escrow
+  - milestone released: Dr Escrow / Cr Carrier Payable
+  - carrier paid: Dr Carrier Payable / Cr Cash
+  - invoice issued: Dr Receivable / Cr Goods Revenue + Duty Payable + VAT Payable
+  - reversal: every line flipped
+  `withAed()` requires balance **in each original currency** (no hidden FX trades) and absorbs per-line AED rounding so AED totals balance exactly.
+- `src/lib/ledger/post.ts`, the **posting engine**:
+  - `postTransaction` is idempotent: the same key and request replays the original, a different request with the same key is rejected, and a failed posting leaves nothing behind
+  - `reverseTransaction` posts the exact opposite; a transaction can be reversed only once (enforced by a unique index in migration `0005`) and reversals can't be reversed
+  - `accountBalances` derives balances from entries
+- `src/lib/idempotency.ts`: key format rules and stable request hashing.
+- `src/lib/fx/`, the **FX service**: free ECB feed (Frankfurter), crossed through the official USD peg (3.6725) because the ECB has no AED; exact 8-dp decimal division; cached in `fx_rates` (12 h); falls back to stale cache, then indicative constants, so it never hard-fails. Every posting stores its rate, so history never changes.
+- **Seed ledger history** now goes through the real engine: 22 transactions (escrow funding, invoices, milestone releases, simulated carrier payouts), released milestones linked to their transactions, payouts recorded. The seed no longer deletes demo shipments on re-run, because ledger history is append-only.
+
+**Checks:** lint ✅ · typecheck ✅ · tests 75/75 ✅ (ledger, FX and seed against real Postgres via PGlite) · drizzle-kit check ✅ · build ✅ · e2e 4 passed, 1 skipped (needs Supabase keys) · npm audit 0 vulnerabilities
+
+## Next: Phase 5 (Module A: document upload & AI extraction)

@@ -2,21 +2,22 @@
  * Demo data: chart of accounts, HS starter codes, FX rates and six shipments
  * covering every status (draft → delivered), with documents, line items,
  * invoices and escrow milestones. Safe to re-run: reference data is upserted
- * and demo shipments (NXT-DEMO-*) are replaced.
+ * and demo shipments (NXT-DEMO-*) are created once, with ledger history posted
+ * through the real engine (escrow funding, releases, payouts, invoices).
  *
  *   npm run db:seed
- *
- * Ledger history is added in Phase 4, once the posting engine exists.
  */
 import { createHash } from 'node:crypto'
 import { pathToFileURL } from 'node:url'
-import { inArray, like } from 'drizzle-orm'
+import { eq, like } from 'drizzle-orm'
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core'
 import * as schema from './schema'
 import { ACCOUNTS, DEMO_SHIPMENTS, DEMO_TRACKING_PREFIX, ESCROW_SPLIT, FX_RATES, type DemoShipment } from './data/demo'
 import { HS_CODES } from './data/hs-codes'
 import { applyBasisPoints, fromMinor, toMinor } from '../lib/money'
 import { computeInvoice, lineTotal } from '../lib/tax/invoice'
+import { carrierPaid, escrowFunded, invoiceIssued, milestoneReleased, type DraftEntry } from '../lib/ledger/entries'
+import { postTransaction } from '../lib/ledger/post'
 
 type Db = PgDatabase<PgQueryResultHKT, typeof schema>
 
@@ -50,15 +51,14 @@ export async function seed(db: Db) {
       .where(like(schema.profiles.email, '%@nexustrade.test'))
     const userFor = (role: string) => demoProfiles.find((p) => p.role === role)?.id ?? null
 
-    // ---- replace demo shipments ----
-    const old = await tx.select({ id: schema.shipments.id }).from(schema.shipments).where(like(schema.shipments.trackingNumber, `${DEMO_TRACKING_PREFIX}%`))
-    if (old.length) {
-      const ids = old.map((o) => o.id)
-      await tx.delete(schema.invoices).where(inArray(schema.invoices.shipmentId, ids))
-      await tx.delete(schema.shipments).where(inArray(schema.shipments.id, ids)) // cascades docs, lines, escrow
-    }
+    // ---- demo shipments: created once. Their ledger history is append-only,
+    // so a re-run keeps them rather than deleting and recreating them. ----
+    const existing = await tx.$count(schema.shipments, like(schema.shipments.trackingNumber, `${DEMO_TRACKING_PREFIX}%`))
+    const summary = { accounts: ACCOUNTS.length, hsCodes: HS_CODES.length, fxRates: FX_RATES.length, demoUsersLinked: demoProfiles.length }
+    if (existing > 0) return { ...summary, shipments: existing, ledgerTransactions: await tx.$count(schema.ledgerTransactions), skipped: true }
 
     const now = Date.now()
+    let ledgerTransactions = 0
     for (const s of DEMO_SHIPMENTS) {
       const created = new Date(now - s.daysAgo * DAY)
       const r = rank[s.status]
@@ -159,6 +159,22 @@ export async function seed(db: Db) {
         })),
       )
 
+      // Every ledger posting goes through the real engine, with namespaced keys.
+      const rate = fx[s.currency]!
+      const money = (amount: bigint) => ({ amount, currency: s.currency, fxRateToAed: rate })
+      const post = async (event: string, description: string, entries: DraftEntry[], invoiceId?: string) => {
+        const { transactionId } = await postTransaction(tx, {
+          idempotencyKey: `seed:ledger:${s.trackingNumber}:${event}`,
+          description: `${description} · ${s.trackingNumber}`,
+          entries,
+          shipmentId,
+          invoiceId: invoiceId ?? null,
+          postedBy: userFor('finance'),
+        })
+        ledgerTransactions++
+        return transactionId
+      }
+
       // Invoice once customs has cleared.
       if (r >= 3) {
         const dutyBp = Object.fromEntries(HS_CODES.map((h) => [h.code, h.dutyRateBp]))
@@ -167,7 +183,7 @@ export async function seed(db: Db) {
           s.treatment,
           fx[s.currency]!,
         )
-        await tx.insert(schema.invoices).values({
+        const [invoice] = await tx.insert(schema.invoices).values({
           shipmentId,
           invoiceNumber: `INV-2026-${s.trackingNumber.slice(-4)}`,
           taxTreatment: s.treatment,
@@ -182,13 +198,14 @@ export async function seed(db: Db) {
           idempotencyKey: `seed:invoice:${s.trackingNumber}`,
           issuedBy: userFor('finance'),
           issuedAt: new Date(created.getTime() + 14 * DAY),
-        })
+        }).returning({ id: schema.invoices.id })
+        await post('invoice', 'Invoice issued', invoiceIssued(totals, s.currency, rate), invoice!.id)
       }
 
       // Escrow: amounts sum exactly to the freight (last milestone takes the remainder).
       const freight = toMinor(s.freightAmount)
       let allocated = 0n
-      await tx.insert(schema.escrowMilestones).values(
+      const milestones = await tx.insert(schema.escrowMilestones).values(
         ESCROW_SPLIT.map((m, i) => {
           const amount = i === ESCROW_SPLIT.length - 1 ? freight - allocated : applyBasisPoints(freight, BigInt(m.percentBp))
           allocated += amount
@@ -205,11 +222,23 @@ export async function seed(db: Db) {
             releasedBy: released ? userFor('finance') : null,
           }
         }),
-      )
+      ).returning()
+
+      // Ledger history: the importer funds the full freight into escrow at booking;
+      // each released milestone moves money to the carrier, who is then paid out.
+      if (r >= 1) await post('fund', 'Escrow funded at booking', escrowFunded(money(freight)))
+      for (const m of milestones.filter((x) => x.status === 'RELEASED')) {
+        const amount = toMinor(m.amount)
+        const releaseTx = await post(`release:${m.kind}`, `Escrow released (${m.kind})`, milestoneReleased(money(amount)))
+        await tx.update(schema.escrowMilestones).set({ ledgerTransactionId: releaseTx }).where(eq(schema.escrowMilestones.id, m.id))
+        const payoutKey = `seed:payout:${s.trackingNumber}:${m.kind}`
+        await post(`payout:${m.kind}`, `Carrier paid: ${s.carrierName}`, carrierPaid(money(amount)))
+        await tx.insert(schema.payouts).values({ milestoneId: m.id, carrierName: s.carrierName, amount: m.amount, currency: s.currency, status: 'SIMULATED', idempotencyKey: payoutKey })
+      }
     }
 
-    const shipmentCount = await tx.$count(schema.shipments, like(schema.shipments.trackingNumber, `${DEMO_TRACKING_PREFIX}%`))
-    return { accounts: ACCOUNTS.length, hsCodes: HS_CODES.length, fxRates: FX_RATES.length, shipments: shipmentCount, demoUsersLinked: demoProfiles.length }
+    const shipments = await tx.$count(schema.shipments, like(schema.shipments.trackingNumber, `${DEMO_TRACKING_PREFIX}%`))
+    return { ...summary, shipments, ledgerTransactions, skipped: false }
   })
 }
 
