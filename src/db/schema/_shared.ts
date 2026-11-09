@@ -12,12 +12,12 @@ export const rate = () => numeric({ precision: 18, scale: 8 })
 export const createdAt = () => timestamp({ withTimezone: true }).defaultNow().notNull()
 
 /**
- * RLS predicate: the caller's role (from public.current_user_role()) is one of `roles`.
+ * RLS predicate: the caller's role (from private.current_user_role(), not exposed by the API) is one of `roles`.
  * Roles are compile-time constants, so sql.raw is safe here.
  * Wrapped in a sub-select so Postgres evaluates it once per statement, not per row.
  */
 export function roleIn(...roles: UserRole[]): SQL {
-  return sql.raw(`(select public.current_user_role()) in (${roles.map((r) => `'${r}'`).join(', ')})`)
+  return sql.raw(`(select private.current_user_role()) in (${roles.map((r) => `'${r}'`).join(', ')})`)
 }
 
 export const ANY_ROLE = roleIn('coordinator', 'broker', 'finance')

@@ -38,7 +38,11 @@ export async function createTestDb() {
   }
 
   // Supabase's default grants: RLS, not GRANTs, is what restricts access.
+  // Supabase also puts `extensions` on every role's search_path (pgvector lives there).
   await pg.exec(`
+    ALTER ROLE postgres SET search_path TO "$user", public, extensions;
+    ALTER ROLE authenticated SET search_path TO "$user", public, extensions;
+    SET search_path TO "$user", public, extensions;
     GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
     GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
     GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
