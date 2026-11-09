@@ -104,7 +104,14 @@ async function ShipmentDetail({ params }: { params: Promise<{ id: string }> }) {
       </section>
 
       <section className="flex flex-col gap-3" aria-labelledby="lines">
-        <h2 id="lines" className="font-medium">Line items ({lineItems.length})</h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 id="lines" className="font-medium">Line items ({lineItems.length})</h2>
+          {lineItems.length > 0 && (
+            <Link href={`/workspace/coordinator/shipments/${s.id}/packing-slip`} className="rounded-md border border-foreground/15 px-3 py-1.5 text-sm hover:bg-foreground/5">
+              Packing slip
+            </Link>
+          )}
+        </div>
         {lineItems.length > 0 && (
           <div className="overflow-x-auto rounded-xl border border-foreground/10">
             <table className="w-full text-left text-sm">

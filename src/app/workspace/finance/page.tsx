@@ -7,6 +7,7 @@ import { financeEscrowView } from '@/features/escrow/queries'
 import { MILESTONE_LABEL } from '@/features/escrow/rules'
 import { FundButtons, ReleaseButton } from '@/features/escrow/components/escrow-buttons'
 import { ShipmentStatus } from '@/features/shipments/components/badges'
+import { FinanceTabs } from '@/features/reports/components/finance-tabs'
 
 export const metadata: Metadata = { title: 'Finance · NexusTrade' }
 
@@ -47,8 +48,13 @@ async function Escrow() {
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-col gap-2">
-        <p className="font-mono text-xs uppercase tracking-[0.2em] text-foreground/60">Finance Controller</p>
-        <h1 className="text-3xl font-semibold tracking-tight">Escrow &amp; payouts</h1>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="flex flex-col gap-2">
+            <p className="font-mono text-xs uppercase tracking-[0.2em] text-foreground/60">Finance Controller</p>
+            <h1 className="text-3xl font-semibold tracking-tight">Escrow &amp; payouts</h1>
+          </div>
+          <FinanceTabs active="escrow" />
+        </div>
         <p className="max-w-2xl text-foreground/70">
           Welcome, {user.fullName ?? user.email}. Importers fund the full freight at booking; you release it to carriers at each
           milestone. {stripeEnabled ? 'Payments use Stripe test mode.' : 'Stripe keys are not set, so payments are simulated.'}

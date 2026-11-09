@@ -9,8 +9,8 @@
 | 5. Module A: document AI | ✅ Built (screens need Supabase to try live) |
 | 6. Module B: HS classifier | ✅ Built (screen needs Supabase to try live) |
 | 7. Module D: escrow & Stripe | ✅ Built (screens need Supabase; Stripe optional) |
-| 8. Module E: dashboards & exports | ⏭ Next |
-| 9. Hardening | ⬜ |
+| 8. Module E: dashboards & exports | ✅ Built (screens need Supabase to try live) |
+| 9. Hardening | ⏭ Next |
 
 ## Phase 1: Scaffold ✅
 Started by the Antigravity agent (Next.js 16.4 app, Tailwind v4, Zod, Drizzle packages); finished in Claude Code after Antigravity's Claude credits ran out.
@@ -147,4 +147,24 @@ Started by the Antigravity agent (Next.js 16.4 app, Tailwind v4, Zod, Drizzle pa
 
 **Not yet verified:** the screens and a real Stripe test checkout haven't run live. To try Stripe: add `sk_test_…` keys, then run `stripe listen --forward-to localhost:3000/api/webhooks/stripe` and pay with card 4242 4242 4242 4242.
 
-## Next: Phase 8 (Module E: dashboards & exports)
+## Phase 8: Module E, dashboards & exports ✅
+**Delivered**
+- **Safe CSV** (`lib/csv.ts`): RFC 4180 quoting plus protection against spreadsheet formula injection (`= + - @` cells are prefixed; plain negative numbers stay numeric). CRLF line endings and a UTF-8 BOM so Excel opens Arabic and other non-ASCII text correctly.
+- **Accounting exports** (`/api/exports/{journal|xero|vat}`, finance only, `no-store`):
+  - generic Debit/Credit journal for Zoho Books (mapped on import)
+  - Xero-style manual journal with a signed Amount column
+  - VAT register
+  Every journal is checked to balance before export.
+- **VAT audit** (`vatSummary`): standard-rated supplies and output VAT, zero-rated and exempt totals in AED (at each invoice's stored rate). It flags VAT that isn't 5% of value + duty, standard-rated invoices without a customer TRN, and VAT charged on exempt or zero-rated supplies.
+- **Reports page** (`/workspace/finance/reports`): Recharts (lazy-loaded, ~100 KB kept off other pages) for freight funded per month, freight by carrier and shipments by status, with accessible text summaries. VAT audit with a date-range filter, issue list and export buttons. Escrow / Reports tabs.
+- **Packing slip** (`/workspace/coordinator/shipments/[id]/packing-slip`): printable (print / save as PDF) with parties, TRNs, HS codes, quantities, total weight and volume, and signature lines.
+
+**Decisions**
+- Xero and Zoho journal headers couldn't be confirmed from official docs. Exports follow the commonly used templates, and the UI says to compare them with the import-screen template. It also notes that Xero blocks receivable, payable and bank accounts in manual journals.
+- Test timeout raised to 30 s: the real-Postgres suites (PGlite) seed 5,612 HS codes and run in parallel.
+
+**Checks:** lint ✅ · typecheck ✅ · tests 142/142 ✅ (exports built from the full seeded ledger: every journal balances, Xero amounts net to 0.00) · drizzle-kit check ✅ · build ✅ · e2e 4 passed, 1 skipped · npm audit 0 vulnerabilities
+
+**Not yet verified:** the charts, reports page and packing slip haven't rendered live (needs Supabase).
+
+## Next: Phase 9 (Hardening)

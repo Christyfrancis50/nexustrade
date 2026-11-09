@@ -12,5 +12,7 @@ export default defineConfig({
   test: {
     include: ['src/**/*.test.{ts,tsx}'],
     environment: 'node',
+    // Many suites run real Postgres (PGlite, WASM) in parallel; seeding 5,612 HS codes takes a few seconds under load.
+    testTimeout: 30_000,
   },
 })
