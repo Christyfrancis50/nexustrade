@@ -39,6 +39,26 @@ export function applyBasisPoints(minor: bigint, bp: bigint): bigint {
   return q
 }
 
+const RATE = /^(\d+)(?:\.(\d{1,8}))?$/
+const RATE_SCALE = 100_000_000n
+
+/**
+ * Convert minor units with a decimal FX rate (up to 8 dp, e.g. "3.6725" AED per USD),
+ * rounding half away from zero. Rates are strings so they never pass through floats.
+ */
+export function convert(minor: bigint, rate: string): bigint {
+  const m = RATE.exec(rate.trim())
+  if (!m) throw new Error(`Invalid FX rate: "${rate}"`)
+  const scaled = BigInt(m[1]!) * RATE_SCALE + BigInt((m[2] ?? '').padEnd(8, '0'))
+  if (scaled === 0n) throw new Error('FX rate must be positive')
+  const product = minor * scaled
+  const q = product / RATE_SCALE
+  const r = product % RATE_SCALE
+  const absR = r < 0n ? -r : r
+  if (absR * 2n >= RATE_SCALE) return product < 0n ? q - 1n : q + 1n
+  return q
+}
+
 export function formatMoney(minor: bigint, currency: Currency): string {
   const [whole, frac] = fromMinor(minor).split('.')
   const grouped = whole!.replace(/\B(?=(\d{3})+(?!\d))/g, ',')

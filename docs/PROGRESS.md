@@ -4,8 +4,8 @@
 |---|---|
 | 1. Scaffold | ✅ Done |
 | 2. Auth & roles | ✅ Built (needs your Supabase keys to try live) |
-| 3. Schema & seed | ⏭ Next |
-| 4. Ledger, tax & FX engine | ⬜ |
+| 3. Schema & seed | ✅ Done (load into Supabase with db:migrate + db:seed) |
+| 4. Ledger, tax & FX engine | ⏭ Next |
 | 5. Module A: document AI | ⬜ |
 | 6. Module B: HS classifier | ⬜ |
 | 7. Module D: escrow & Stripe | ⬜ |
@@ -54,4 +54,22 @@ Started by the Antigravity agent (Next.js 16.4 app, Tailwind v4, Zod, Drizzle pa
 3. `npm run db:migrate`, then `npm run auth:demo-users`, then `npm run dev`.
 4. Sign in as coordinator@nexustrade.test, broker@nexustrade.test or finance@nexustrade.test.
 
-## Next: Phase 3 (Schema & seed)
+## Phase 3: Schema & seed ✅
+**Delivered**
+- **Tables** (Drizzle, snake_case): `shipments`, `documents`, `line_items`, `hs_codes` (with a `vector(384)` embedding and an HNSW index), `classification_decisions`, `accounts`, `invoices`, `ledger_transactions`, `ledger_entries`, `escrow_milestones`, `payouts`, `fx_rates`, `idempotency_keys`, `audit_log`, plus an `account_balances` view.
+- **Database-level guarantees**, not just app code:
+  - check constraints for UN/LOCODEs, 15-digit TRNs, HS-code format, upload type and size (≤10 MB), positive amounts, invoice `total = subtotal + VAT + duty`, VAT rate matching the tax treatment, and escrow "released ⇔ released_at"
+  - unique idempotency keys on invoices, ledger transactions and payouts
+  - migration `0004`: ledger transactions, ledger entries and the audit log are **append-only** (UPDATE, DELETE and TRUNCATE are blocked), and a deferred constraint trigger rejects any **unbalanced** transaction (debits ≠ credits in AED, or fewer than two lines) at COMMIT
+- **RLS on every table**, by role: everyone reads shipments, documents and line items; coordinators create them; brokers record HS decisions; only finance reads the ledger, payouts and audit log. **There are no write policies on money tables**, so money can only be written by Server Actions on the server connection.
+- `src/lib/tax/invoice.ts`: line totals with 3-dp quantities, per-line duty, UAE VAT on value + duty (5% standard, 0% zero-rated or exempt), AED conversion. `convert()` added to the money helpers.
+- **Seed** (`npm run db:seed`, safe to re-run): 10-account chart, 51 real HS 2022 subheadings with indicative GCC duty and restricted flags, FX rates (USD peg 3.6725), and 6 demo shipments across every status with documents, line items, invoices and 10/40/50 escrow milestones. Shipment 0003 is on customs hold because its invoice total doesn't match its line items.
+- **Real-Postgres tests**: `test/pglite.ts` boots Postgres 17 + pgvector in-process (PGlite), mimics Supabase's auth schema and roles, and applies every migration. 21 database tests cover the guards, RLS and the seed. No Docker or cloud database needed, and it runs in CI.
+
+**Decisions**
+- Ledger history is seeded in Phase 4, once the posting engine exists, so seed data goes through the same balanced-posting path as real data.
+- Duty rates are labelled indicative. Phase 6 expands HS codes to 300+ and adds embeddings.
+
+**Checks:** lint ✅ · typecheck ✅ · unit + DB tests 44/44 ✅ · drizzle-kit check ✅ · build ✅ · e2e 4 passed, 1 skipped (needs Supabase keys) · npm audit 0 vulnerabilities
+
+## Next: Phase 4 (Ledger, tax & FX engine)

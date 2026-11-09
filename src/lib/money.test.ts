@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { applyBasisPoints, formatMoney, fromMinor, toMinor } from './money'
+import { applyBasisPoints, convert, formatMoney, fromMinor, toMinor } from './money'
 
 describe('money', () => {
   it('round-trips decimal strings through minor units', () => {
@@ -25,6 +25,15 @@ describe('money', () => {
     expect(applyBasisPoints(toMinor('0.10'), 500n)).toBe(1n) // 0.005 → 0.01
     expect(applyBasisPoints(toMinor('0.09'), 500n)).toBe(0n) // 0.0045 → 0.00
     expect(applyBasisPoints(toMinor('-0.10'), 500n)).toBe(-1n)
+  })
+
+  it('converts currencies with string rates and half-up rounding', () => {
+    expect(convert(toMinor('100.00'), '3.6725')).toBe(toMinor('367.25')) // USD → AED peg
+    expect(convert(toMinor('0.01'), '3.6725')).toBe(4n) // 0.036725 → 0.04
+    expect(convert(toMinor('10.00'), '1')).toBe(1000n)
+    expect(() => convert(1n, '0')).toThrow()
+    expect(() => convert(1n, '-3.67')).toThrow()
+    expect(() => convert(1n, '3.123456789')).toThrow()
   })
 
   it('formats with grouping', () => {

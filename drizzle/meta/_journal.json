@@ -15,6 +15,27 @@
       "when": 1794225852063,
       "tag": "0001_auth_profile_trigger",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794226222019,
+      "tag": "0002_enable_pgvector",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794226227261,
+      "tag": "0003_core_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794226232250,
+      "tag": "0004_ledger_guards",
+      "breakpoints": true
     }
   ]
 }
