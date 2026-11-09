@@ -15,9 +15,12 @@
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx --env-file-if-exists=.env src/db/seed.ts",
     "db:studio": "drizzle-kit studio",
-    "verify": "npm run lint && npm run typecheck && npm test && npm run build"
+    "verify": "npm run lint && npm run typecheck && npm test && npm run build",
+    "auth:demo-users": "tsx --env-file-if-exists=.env scripts/create-demo-users.ts"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.119.0",
     "drizzle-orm": "^0.45.4",
     "next": "16.4.5",
     "postgres": "^4.1.0",

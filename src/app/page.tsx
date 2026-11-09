@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 const MODULES = [
   { code: "A", title: "Document AI", body: "Extract line items, TRNs and totals from bills of lading, airway bills and invoices, and flag math discrepancies." },
   { code: "B", title: "HS classifier", body: "Semantic HS-code suggestions with confidence and estimated duty, approved by a customs broker." },
@@ -18,6 +20,12 @@ export default function Home() {
           Connects shipping documents, customs and carrier payouts in one ledger, so forwarders get paid at each
           milestone instead of waiting 30–60 days.
         </p>
+        <Link
+          href="/login"
+          className="mt-2 w-fit rounded-lg bg-foreground px-5 py-2.5 text-sm font-medium text-background"
+        >
+          Sign in to your workspace
+        </Link>
       </header>
 
       <section aria-labelledby="modules" className="flex flex-col gap-4">
@@ -35,7 +43,7 @@ export default function Home() {
         </ul>
       </section>
 
-      <footer className="mt-auto text-sm text-foreground/50">Phase 1: scaffold. See docs/PROGRESS.md.</footer>
+      <footer className="mt-auto text-sm text-foreground/50">Portfolio project in progress. See docs/PROGRESS.md.</footer>
     </main>
   );
 }
