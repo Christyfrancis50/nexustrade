@@ -31,7 +31,7 @@ export async function uploadDocument(_prev: UploadState, formData: FormData): Pr
   if (file.size > MAX_UPLOAD_BYTES) return { ok: false, message: 'Files must be 10 MB or smaller.' }
 
   const admin = supabaseAdmin()
-  if (!admin) return { ok: false, message: 'File storage is not configured. Add SUPABASE_SERVICE_ROLE_KEY to .env.' }
+  if (!admin) return { ok: false, message: 'File storage is not configured yet. Set SUPABASE_SERVICE_ROLE_KEY in the server environment (.env locally, project settings on Vercel).' }
 
   // Each upload can call a paid/limited AI model: cap per user.
   const limited = await (await getLimiter('upload')).limit(user.id)
