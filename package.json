@@ -19,7 +19,8 @@
     "auth:demo-users": "tsx --env-file-if-exists=.env scripts/create-demo-users.ts",
     "hs:embed": "tsx --env-file-if-exists=.env scripts/embed-hs-codes.ts",
     "hs:build": "tsx scripts/build-hs-dataset.ts",
-    "setup:env": "node scripts/setup-env.mjs"
+    "setup:env": "node scripts/setup-env.mjs",
+    "connect:db": "node scripts/connect-db.mjs"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.99",
