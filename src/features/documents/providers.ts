@@ -45,7 +45,7 @@ export const mockProvider: ExtractionProvider = {
 }
 
 /** Vision-model extraction through the Vercel AI SDK, constrained to a JSON schema. */
-export function aiProvider(name: string, model: LanguageModel): ExtractionProvider {
+export function aiProvider(name: string, model: LanguageModel, providerOptions?: Parameters<typeof generateText>[0]['providerOptions']): ExtractionProvider {
   return {
     name,
     async extract(file, { documentType }) {
@@ -55,6 +55,7 @@ export function aiProvider(name: string, model: LanguageModel): ExtractionProvid
         maxRetries: 2,
         abortSignal: AbortSignal.timeout(60_000),
         output: Output.object({ schema: modelOutputSchema }),
+        providerOptions,
         messages: [
           {
             role: 'user',

@@ -97,7 +97,7 @@ Started by the Antigravity agent (Next.js 16.4 app, Tailwind v4, Zod, Drizzle pa
 - **Extraction schema**: a plain schema is sent to the model (it converts cleanly to JSON Schema); a strict schema then normalises numbers, thousands separators and UN/LOCODEs and rejects anything malformed.
 - **Providers** behind one interface:
   - `mock` (default, no key; put "mismatch" in a filename to demo a bad invoice)
-  - Google `gemini-3.8-flash` (free tier)
+  - Google `gemini-3.5-flash` (free tier, minimal thinking for speed)
   - Anthropic `claude-sonnet-5-5`
   Uses AI SDK v7 (`generateText` + `Output.object`); `AI_MODEL` overrides the model.
 - **Reconciliation** (`reconcile.ts`): never trusts the model's maths. It recomputes every line and flags subtotal and total mismatches, invalid TRNs (spaces and dashes allowed), a missing consignee TRN on UAE invoices, and unpriced invoice lines.
