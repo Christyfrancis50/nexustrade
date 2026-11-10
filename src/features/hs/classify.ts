@@ -1,4 +1,4 @@
-import { and, cosineDistance, desc, eq, isNotNull, sql } from 'drizzle-orm'
+import { and, cosineDistance, desc, eq, isNotNull, isNull, sql } from 'drizzle-orm'
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core'
 import * as schema from '@/db/schema'
 import { keywords, type Embedder } from './embedder'
@@ -35,8 +35,11 @@ export async function suggestHsCodes(db: Db, description: string, opts: { embedd
   }
 
   if (opts.embedder) {
+    // Only search semantically once EVERY code is embedded; a partial set would
+    // silently restrict suggestions to whichever codes happened to be done.
+    const missing = await db.$count(schema.hsCodes, isNull(schema.hsCodes.embedding))
     const embedded = await db.$count(schema.hsCodes, isNotNull(schema.hsCodes.embedding))
-    if (embedded > 0) {
+    if (embedded > 0 && missing === 0) {
       const [vec] = await opts.embedder.embed([description], 'query')
       const distance = cosineDistance(schema.hsCodes.embedding, vec!)
       const rows = await db

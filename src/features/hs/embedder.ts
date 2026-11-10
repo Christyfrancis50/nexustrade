@@ -10,7 +10,7 @@ export interface Embedder {
 }
 
 /** Google gemini-embedding-001 (free tier), truncated to 384 dimensions. */
-export async function googleEmbedder(apiKey: string): Promise<Embedder> {
+export async function googleEmbedder(apiKey: string, opts: { maxRetries?: number } = {}): Promise<Embedder> {
   const { createGoogleGenerativeAI } = await import('@ai-sdk/google')
   const model = createGoogleGenerativeAI({ apiKey }).embeddingModel('gemini-embedding-001')
   return {
@@ -19,7 +19,7 @@ export async function googleEmbedder(apiKey: string): Promise<Embedder> {
       const { embeddings } = await embedMany({
         model,
         values: texts,
-        maxRetries: 3,
+        maxRetries: opts.maxRetries ?? 3,
         providerOptions: {
           google: { outputDimensionality: HS_EMBEDDING_DIMENSIONS, taskType: purpose === 'query' ? 'RETRIEVAL_QUERY' : 'RETRIEVAL_DOCUMENT' },
         },

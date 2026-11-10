@@ -73,15 +73,25 @@ describe('keyword classification (no AI key)', () => {
 })
 
 describe('semantic classification (pgvector)', () => {
-  it('ranks by cosine similarity once embeddings exist', async () => {
-    const embedder = hashEmbedder()
-    const sample = HS_DATASET.filter((h) => ['841360', '851713', '100630', '401693'].includes(h.code))
-    const vectors = await embedder.embed(sample.map((h) => `${h.heading}. ${h.description}`), 'document')
-    for (const [i, h] of sample.entries()) await t.db.update(schema.hsCodes).set({ embedding: vectors[i]! }).where(eq(schema.hsCodes.code, h.code))
+  const embedder = hashEmbedder()
+  const embedCodes = async (codes: typeof HS_DATASET) => {
+    const vectors = await embedder.embed(codes.map((h) => `${h.heading}. ${h.description}`), 'document')
+    for (const [i, h] of codes.entries()) await t.db.update(schema.hsCodes).set({ embedding: vectors[i]! }).where(eq(schema.hsCodes.code, h.code))
+  }
 
+  it('keeps using keyword search while only some codes are embedded', async () => {
+    await embedCodes(HS_DATASET.filter((h) => ['841360', '851713', '100630', '401693'].includes(h.code)))
+    const [top] = await suggestHsCodes(t.db, 'Smartphones for cellular networks', { embedder })
+    expect(top?.method).toBe('keyword')
+  })
+
+  it('ranks by cosine similarity once every code is embedded', async () => {
+    await embedCodes(HS_DATASET)
     const [top] = await suggestHsCodes(t.db, 'Telephone sets; smartphones for cellular networks', { embedder })
-    expect(top).toMatchObject({ code: '851713', method: 'semantic' })
-    expect(top!.confidence).toBeGreaterThan(0.3) // hash embedder: shared words only
+    // The test embedder only matches shared words, so assert the heading, not the exact subheading.
+    expect(top?.method).toBe('semantic')
+    expect(top?.code.startsWith('8517')).toBe(true)
+    expect(top!.confidence).toBeGreaterThan(0.3)
   })
 })
 
