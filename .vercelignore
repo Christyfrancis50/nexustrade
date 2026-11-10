@@ -1,0 +1,7 @@
+# Never upload local env files when deploying from the CLI (Vercel uploads .env by default).
+.env
+.env.*
+!.env.example
+.lighthouseci
+playwright-report
+test-results
