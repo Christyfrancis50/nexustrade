@@ -4,6 +4,8 @@
 
 Forwarders in the UAE lose time and cash to three problems: slow manual document processing, invoices whose line items and VAT don't match, and settlement that takes 30–60 days. NexusTrade reads trade documents with AI, re-checks every number, suggests customs HS codes, and pays carriers from escrow at each shipment milestone, all on an append-only double-entry ledger.
 
+**Live demo: [nexustrade-freight.vercel.app](https://nexustrade-freight.vercel.app)**. Sign in as `coordinator@`, `broker@` or `finance@nexustrade.test` (demo passwords are shared on request).
+
 ![NexusTrade home page](docs/screenshots/home.png)
 
 > Portfolio project. Stripe runs in **test mode only** (live keys are rejected), payouts are simulated, and customs duty rates are indicative.

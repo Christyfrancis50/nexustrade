@@ -190,8 +190,8 @@ Started by the Antigravity agent (Next.js 16.4 app, Tailwind v4, Zod, Drizzle pa
 
 **Checks:** lint ✅ · typecheck ✅ · tests 146/146 ✅ · e2e 13 passed, 1 skipped (needs Supabase keys) · drizzle-kit check ✅ · build ✅ · Lighthouse 100×4 ✅ · npm audit 0 vulnerabilities
 
-## Project complete
-All nine phases are built. What remains needs your accounts, not code:
-1. Supabase project and keys (then `db:migrate`, `auth:demo-users`, `db:seed`), to see the workspaces live.
-2. Optional: Google AI key (real extraction and semantic HS search), Stripe test keys, Upstash Redis.
-3. Push to GitHub (CI, CodeQL and Dependabot switch on) and import into Vercel.
+## Project complete and deployed
+- **Live:** https://nexustrade-freight.vercel.app (Vercel, auto-deploys on push to `main`).
+- **Database:** Supabase project `nexustrade` (ap-south-1) with all migrations, security-advisor fixes (private role helper, pgvector in `extensions`), 5,612 HS codes and the demo seed. Ledger balances; escrow holds AED 60,695.70.
+- **Demo logins:** coordinator@ / broker@ / finance@nexustrade.test with roles assigned; RLS verified per role on the live database.
+- **Optional next:** add `SUPABASE_SERVICE_ROLE_KEY` in Vercel to enable document uploads; `AI_PROVIDER=google` and `EMBEDDING_PROVIDER=google` (after `npm run hs:embed`) for real AI.
